@@ -38,6 +38,7 @@
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/FoldUtils.h"
 #include "mlir/Transforms/Passes.h"
+#include "mlir/IR/StandardTypes.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
@@ -614,25 +615,32 @@ static unsigned getStride(Value *iv, LoadOrStoreOp memoryOp) {
   auto accessMap = memoryOp.getAffineMap();
   SmallVector<Value *, 4> mapOperands(memoryOp.getMapOperands());
   int index = -1;
-  for(int i = 0; i < mapOperands.size(); i++) if(mapOperands[i] == iv) index = i;
+  for(int i = 0; i < (int) mapOperands.size(); i++) if(mapOperands[i] == iv) index = i;
   if(index > -1)
   {   
-    AffineExpr layoutExpr;
     auto affineMaps =  memRefType.getAffineMaps();
+    AffineMap layoutMap;
     if(affineMaps.size() > 0)
     {
-      auto layoutMap = affineMaps[0];
-      auto finalMap = layoutMap.compose(accessMap);
-      auto layoutExpr = finalMap.getResult(0);
-      SmallVector<Value *, 4> mapOperands(memoryOp.getMapOperands());
-      SimpleAffineExprFlattener flattener(finalMap.getNumDims(), finalMap.getNumSymbols());
-      flattener.walkPostOrder(layoutExpr);
-      ArrayRef<int64_t> flattenedExpr = flattener.operandExprStack.back();
-      unsigned stride = flattenedExpr[index];
-      // // printf("stride: %u\n", stride);
-      return stride;
+      layoutMap = affineMaps[0];
     }
-    return 1;//revisit this
+    else
+    {
+      int numSymbols;
+      auto canonicalLayoutExpr = makeCanonicalStridedLayoutExpr(memRefType.getShape(), memRefType.getContext(), &numSymbols);
+      assert(canonicalLayoutExpr.isPureAffine());
+      assert(accessMap.getNumResults() == memRefType.getShape().size());
+      layoutMap = AffineMap::get(accessMap.getNumResults(), numSymbols, {canonicalLayoutExpr});      
+    }
+    auto finalMap = layoutMap.compose(accessMap);
+    auto layoutExpr = finalMap.getResult(0);
+    SmallVector<Value *, 4> mapOperands(memoryOp.getMapOperands());
+    SimpleAffineExprFlattener flattener(finalMap.getNumDims(), finalMap.getNumSymbols());
+    flattener.walkPostOrder(layoutExpr);
+    ArrayRef<int64_t> flattenedExpr = flattener.operandExprStack.back();
+    unsigned stride = flattenedExpr[index];
+    // printf("stride: %u\n", stride);
+    return stride;
   }
   return 0; //it must be an identity map
 }

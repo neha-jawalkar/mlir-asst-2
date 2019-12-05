@@ -19,6 +19,7 @@
 #define MLIR_IR_STANDARDTYPES_H
 
 #include "mlir/IR/Types.h"
+#include "mlir/IR/AffineExpr.h"
 
 namespace llvm {
 struct fltSemantics;
@@ -480,6 +481,9 @@ public:
 
   static bool kindof(unsigned kind) { return kind == StandardTypes::None; }
 };
+
+AffineExpr makeCanonicalStridedLayoutExpr(ArrayRef<int64_t> sizes,
+                                                 MLIRContext *context, int* numSymbols);
 
 /// Returns the strides of the MemRef if the layout map is in strided form.
 /// MemRefs with layout maps in strided form include:

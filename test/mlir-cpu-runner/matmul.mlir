@@ -1,4 +1,4 @@
-#map = (d0, d1) -> (4096 * d1 + d0)
+#map = (d0, d1) -> (d0, d1)
 func @matmul(%A: memref<4096x4096xf32, #map>, %B: memref<4096x4096xf32, #map>, %C: memref<4096x4096xf32, #map>) {
   affine.for %arg3 = 0 to 4096 {
     affine.for %arg4 = 0 to 4096 {

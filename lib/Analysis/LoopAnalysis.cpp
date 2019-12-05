@@ -267,7 +267,7 @@ static bool isContiguousAccess(Value *iv, LoadOrStoreOp memoryOp,
 }
 
 template <typename LoadOrStoreOp>
-static bool isContiguousAccessForOuterLoopVec(Value *iv, LoadOrStoreOp memoryOp,
+bool isContiguousAccessForOuterLoopVec(Value *iv, LoadOrStoreOp memoryOp,
                                int *memRefDim) {
   static_assert(std::is_same<LoadOrStoreOp, AffineLoadOp>::value ||
                     std::is_same<LoadOrStoreOp, AffineStoreOp>::value,

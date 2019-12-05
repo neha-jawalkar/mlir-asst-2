@@ -418,8 +418,8 @@ unsigned MemRefType::getMemorySpace() const { return getImpl()->memorySpace; }
 ///   - memref<3x4x5xf32> has canonical stride expression `20*d0 + 5*d1 + d2`.
 ///   - memref<3x?x5xf32> has canonical stride expression `s0*d0 + 5*d1 + d2`.
 ///   - memref<3x4x?xf32> has canonical stride expression `s1*d0 + s0*d1 + d2`.
-static AffineExpr makeCanonicalStridedLayoutExpr(ArrayRef<int64_t> sizes,
-                                                 MLIRContext *context) {
+AffineExpr mlir::makeCanonicalStridedLayoutExpr(ArrayRef<int64_t> sizes,
+                                                 MLIRContext *context, int *numSymbols = nullptr) {
   AffineExpr expr;
   bool dynamicPoisonBit = false;
   unsigned nSymbols = 0;
@@ -447,6 +447,7 @@ static AffineExpr makeCanonicalStridedLayoutExpr(ArrayRef<int64_t> sizes,
     auto sym = getAffineSymbolExpr(nSymbols++, context);
     expr = expr ? expr + d * sym : d * sym;
   }
+  if(numSymbols) *numSymbols = nSymbols;
   return expr;
 }
 

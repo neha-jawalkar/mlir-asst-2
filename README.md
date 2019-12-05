@@ -1,3 +1,16 @@
+# Q2
+
+1. Running mlir-opt --outer-loop-vectorize will try to vectorize loops in each function. The pass is parameterized by --virtual-vec-size, which specifies what vector size to use for the vectorization.
+
+2. Loops are vectorized only if they are parallel, i.e., there are no dependencies along the loop induction variable in the iteration space.
+
+3. Which loop to vectorize is determined by a cost function that minimizes the maximum stride across all memRefs in that loop.
+
+4. Code for the actual vectorization is borrowed from the --affine-vectorize pass; however, an additional pass, --test-convert-vector-to-loops, is used to lower vector.transfer_read and vector.transfer_write operations. 
+This pass allocates a local buffer for the vector (for vector.transfer_read), reads each vector element into the local buffer, and performs operations on it.
+
+
+
 # Multi-Level Intermediate Representation Overview
 
 The MLIR project aims to define a common intermediate representation (IR) that

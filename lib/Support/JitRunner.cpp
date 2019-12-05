@@ -292,7 +292,7 @@ int mlir::JitRunnerMain(
   int exitCode = EXIT_SUCCESS;
   llvm::handleAllErrors(std::move(error),
                         [&exitCode](const llvm::ErrorInfoBase &info) {
-                          llvm::errs() << "Error: ";
+                          llvm::errs() << "ErrorJitRunnerMain: ";
                           info.log(llvm::errs());
                           llvm::errs() << '\n';
                           exitCode = EXIT_FAILURE;

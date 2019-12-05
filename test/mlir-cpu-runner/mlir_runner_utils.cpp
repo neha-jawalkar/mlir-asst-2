@@ -148,6 +148,7 @@ template <typename T, int N> void printMemRef(StridedMemRefType<T, N> &M) {
   std::cout << std::endl;
 }
 
+
 template <typename T> void printZeroDMemRef(StridedMemRefType<T, 0> &M) {
   std::cout << "\nMemref base@ = " << M.data << " rank = " << 0
             << " offset = " << M.offset << " data = [";

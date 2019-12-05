@@ -266,6 +266,63 @@ static bool isContiguousAccess(Value *iv, LoadOrStoreOp memoryOp,
   return true;
 }
 
+template <typename LoadOrStoreOp>
+static bool isContiguousAccessForOuterLoopVec(Value *iv, LoadOrStoreOp memoryOp,
+                               int *memRefDim) {
+  static_assert(std::is_same<LoadOrStoreOp, AffineLoadOp>::value ||
+                    std::is_same<LoadOrStoreOp, AffineStoreOp>::value,
+                "Must be called on either const LoadOp & or const StoreOp &");
+  assert(memRefDim && "memRefDim == nullptr");
+  auto memRefType = memoryOp.getMemRefType();
+
+  auto layoutMap = memRefType.getAffineMaps();
+  // TODO(ntv): remove dependence on Builder once we support non-identity
+  // layout map.
+  Builder b(memoryOp.getContext());
+  if (layoutMap.size() >= 2) {
+    return memoryOp.emitError("NYI: non-trivial layoutMap"), false;
+  }
+
+  if(layoutMap.size() == 1 && layoutMap[0].getNumResults() > 1 &&
+       !(layoutMap[0] ==
+         b.getMultiDimIdentityMap(layoutMap[0].getNumDims())))
+  {
+    return memoryOp.emitError("NYI: non-trivial layoutMap"), false;
+  }
+
+  int uniqueVaryingIndexAlongIv = -1;
+  auto accessMap = memoryOp.getAffineMap();
+  SmallVector<Value *, 4> mapOperands(memoryOp.getMapOperands());
+  unsigned numDims = accessMap.getNumDims();
+  for (unsigned i = 0, e = memRefType.getRank(); i < e; ++i) {
+    // Gather map operands used result expr 'i' in 'exprOperands'.
+    SmallVector<Value *, 4> exprOperands;
+    auto resultExpr = accessMap.getResult(i);
+    resultExpr.walk([&](AffineExpr expr) {
+      if (auto dimExpr = expr.dyn_cast<AffineDimExpr>())
+        exprOperands.push_back(mapOperands[dimExpr.getPosition()]);
+      else if (auto symExpr = expr.dyn_cast<AffineSymbolExpr>())
+        exprOperands.push_back(mapOperands[numDims + symExpr.getPosition()]);
+    });
+    // Check access invariance of each operand in 'exprOperands'.
+    for (auto *exprOperand : exprOperands) {
+      if (!isAccessInvariant(iv, exprOperand)) {
+        if (uniqueVaryingIndexAlongIv != -1) {
+          // 2+ varying indices -> do not vectorize along iv.
+          return false;
+        }
+        uniqueVaryingIndexAlongIv = i;
+      }
+    }
+  }
+
+  if (uniqueVaryingIndexAlongIv == -1)
+    *memRefDim = -1;
+  else
+    *memRefDim = memRefType.getRank() - (uniqueVaryingIndexAlongIv + 1);
+  return true;
+}
+
 template <typename LoadOrStoreOpPointer>
 static bool isVectorElement(LoadOrStoreOpPointer memoryOp) {
   auto memRefType = memoryOp.getMemRefType();
@@ -279,8 +336,7 @@ isVectorizableLoopBodyWithOpCond(AffineForOp loop,
                                  VectorizableOpFun isVectorizableOp,
                                  NestedPattern &vectorTransferMatcher) {
   auto *forOp = loop.getOperation();
-
-  // No vectorization across conditionals for now.
+ // No vectorization across conditionals for now.
   auto conditionals = matcher::If();
   SmallVector<NestedMatch, 8> conditionalsMatched;
   conditionals.match(forOp, &conditionalsMatched);
@@ -336,6 +392,18 @@ bool mlir::isVectorizableLoopBody(AffineForOp loop, int *memRefDim,
   });
   return isVectorizableLoopBodyWithOpCond(loop, fun, vectorTransferMatcher);
 }
+
+bool mlir::isVectorizableLoopBodyForOuterLoopVec(AffineForOp loop, int *memRefDim,
+                                  NestedPattern &vectorTransferMatcher) {
+  VectorizableOpFun fun([memRefDim](AffineForOp loop, Operation &op) {
+    auto load = dyn_cast<AffineLoadOp>(op);
+    auto store = dyn_cast<AffineStoreOp>(op);
+    return load ? isContiguousAccessForOuterLoopVec(loop.getInductionVar(), load, memRefDim)
+                : isContiguousAccessForOuterLoopVec(loop.getInductionVar(), store, memRefDim);
+  });
+  return isVectorizableLoopBodyWithOpCond(loop, fun, vectorTransferMatcher);
+}
+
 
 bool mlir::isVectorizableLoopBody(AffineForOp loop,
                                   NestedPattern &vectorTransferMatcher) {

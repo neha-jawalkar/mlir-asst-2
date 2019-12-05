@@ -103,6 +103,9 @@ bool isVectorizableLoopBody(AffineForOp loop,
 bool isVectorizableLoopBody(AffineForOp loop, int *memRefDim,
                             NestedPattern &vectorTransferMatcher);
 
+bool isVectorizableLoopBodyForOuterLoopVec(AffineForOp loop, int *memRefDim,
+                                  NestedPattern &vectorTransferMatcher);
+
 /// Checks where SSA dominance would be violated if a for op's body
 /// operations are shifted by the specified shifts. This method checks if a
 /// 'def' and all its uses have the same shift factor.

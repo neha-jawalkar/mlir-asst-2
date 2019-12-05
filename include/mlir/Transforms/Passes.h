@@ -46,6 +46,9 @@ std::unique_ptr<Pass> createCSEPass();
 std::unique_ptr<OpPassBase<FuncOp>>
 createVectorizePass(llvm::ArrayRef<int64_t> virtualVectorSize);
 
+std::unique_ptr<OpPassBase<FuncOp>>
+createOuterLoopVecPass(llvm::ArrayRef<int64_t> virtualVectorSize);
+
 /// Creates a pass to allow independent testing of vectorizer functionality with
 /// FileCheck.
 std::unique_ptr<OpPassBase<FuncOp>> createVectorizerTestPass();

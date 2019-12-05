@@ -627,11 +627,21 @@ static unsigned getStride(Value *iv, LoadOrStoreOp memoryOp) {
     else
     {
       int numSymbols;
+      // if the dimensions of the memRef are not completely specified, new symbols will be introduced in the stride expr
       auto canonicalLayoutExpr = makeCanonicalStridedLayoutExpr(memRefType.getShape(), memRefType.getContext(), &numSymbols);
-      assert(canonicalLayoutExpr.isPureAffine());
-      assert(accessMap.getNumResults() == memRefType.getShape().size());
+      assert(canonicalLayoutExpr.isPureAffine()); // the dimensions of the memRef must be completely specified
+      // if the memRef is completely specified, no new symbols should have been introduced in the stride expr
+      assert(numSymbols == 0);
+      // sanity check: 
+      // the access map maps the loop induction variables to an element of the memRef, 
+      // so the output dims of the accessMap must be the same as the shape of the memRef
+      assert(accessMap.getNumResults() == memRefType.getShape().size()); 
+      
+      // if the memRef isn't associated with a layoutMap, use a canonical layout map to calculate strides
       layoutMap = AffineMap::get(accessMap.getNumResults(), numSymbols, {canonicalLayoutExpr});      
     }
+    // we need a function from the induction variables of a loop to the final layout expr.
+    // The coefficient of the induction variable in this expression decides its stride
     auto finalMap = layoutMap.compose(accessMap);
     auto layoutExpr = finalMap.getResult(0);
     SmallVector<Value *, 4> mapOperands(memoryOp.getMapOperands());
@@ -639,10 +649,9 @@ static unsigned getStride(Value *iv, LoadOrStoreOp memoryOp) {
     flattener.walkPostOrder(layoutExpr);
     ArrayRef<int64_t> flattenedExpr = flattener.operandExprStack.back();
     unsigned stride = flattenedExpr[index];
-    // printf("stride: %u\n", stride);
     return stride;
   }
-  return 0; //it must be an identity map
+  return 0; 
 }
 
 template <typename LoadOrStoreOpPointer>

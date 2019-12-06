@@ -15,7 +15,7 @@ This pass allocates a local buffer for the vector, reads each vector element int
 
 6. Test cases can be found in the file test_outer_loop_vectorization.mlir. They take care of the following:
     * Ensure that strides are properly calculated in the presence of an identity layout map.
-    * Ensure that strides are properly calculated when the matrices are stored in column major order.
+    * Ensure that strides are properly calculated when the memRef layout map maps to a one-dimensional pure affine function.
     * Ensure that the innermost loop is not vectorized, even when it is parallel.
     * Ensure that vectorization doesn't occur when the trip count is smaller than the vector width.
     * Ensure that strides are properly calculated when the access function is pure affine (but the coefficient of the               induction variable is not 1).

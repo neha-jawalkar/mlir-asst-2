@@ -2,12 +2,23 @@
 
 1. Running mlir-opt --outer-loop-vectorize will try to vectorize loops in each function. The pass is parameterized by --virtual-vec-size, which specifies what vector size to use for the vectorization.
 
-2. Loops are vectorized only if they are parallel, i.e., there are no dependencies along the loop induction variable in the iteration space.
+2. Loops are vectorized only if they are parallel, i.e., there are no dependences along the loop induction variable in the iteration space.
 
-3. Which loop to vectorize is determined by a cost function that minimizes the maximum stride across all memRefs in that loop.
+3. In a loop nest, the loop to vectorize is determined as follows: For each memRef in the body of the loop, we calculate the stride of the memRef with respect to the induction variable of the loop. The 'cost' of vectorizing a loop is the maximum such stride. The loop with the minimum maximum stride is chosen to be vectorized. However, the model is not complete and comes with certain stipulations:
+    (a) We can only handle memRefs where a composition of the memRef accessMap with the memRef layoutMap is a one-dimensional         pure affine function.
+    (b) If a layoutMap is missing, we assume a canonical layout map (for eg. row-major in the case of two-dimensional                 memRefs), and work with the composition of the memRef access map with the canonical layout map.
 
 4. Code for the actual vectorization is borrowed from the --affine-vectorize pass; however, an additional pass, --test-convert-vector-to-loops, is used to lower vector.transfer_read and vector.transfer_write operations. 
-This pass allocates a local buffer for the vector (for vector.transfer_read), reads each vector element into the local buffer, and performs operations on it.
+This pass allocates a local buffer for the vector, reads each vector element into the local buffer, and performs operations on it.
+
+5. Running the lowered LLVM code sometimes results in a segfault. I'm not sure why, but I know that the vectorization is responsible for it, since the code also segfaults if we run the (preexisting) --affine-vectorize pass.
+
+6. Test cases can be found in the file test_outer_loop_vectorization.mlir. They take care of the following:
+    (a) Ensure that strides are properly calculated in the presence of an identity layout map.
+    (b) Ensure that strides are properly calculated when the matrices are stored in column major order.
+    (c) Ensure that the innermost loop is not vectorized, even when it is parallel.
+    (d) Ensure that vectorization doesn't occur when the trip count is smaller than the vector width.
+    (e) Ensure that strides are properly calculated when the access function is pure affine (but the coefficient of the               induction variable is not 1).
 
 
 

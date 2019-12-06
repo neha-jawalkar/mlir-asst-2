@@ -23,8 +23,8 @@ func @main() -> f32 {
   linalg.fill(%B, %cf1) : memref<2048x2048xf32>, f32
   linalg.fill(%C, %cf1) : memref<2048x2048xf32>, f32
   call @matmul(%A, %B, %C) : (memref<2048x2048xf32>, memref<2048x2048xf32>, memref<2048x2048xf32>) -> ()
-  // call @print_memref_2d_f32(%C): (memref<2048x2048xf32) -> ()
+  call @print_memref_2d_f32(%C): (memref<2048x2048xf32>) -> ()
   return %cf1 : f32
 }
 
-func @print_memref_2d_f32(memref<2048x2048xf32>)
+func @print_memref_2d_f32(memref<2048x2048xf32>) -> ()

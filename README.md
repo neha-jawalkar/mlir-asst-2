@@ -20,7 +20,7 @@ This pass allocates a local buffer for the vector, reads each vector element int
     * Ensure that vectorization doesn't occur when the trip count is smaller than the vector width.
     * Ensure that strides are properly calculated when the access function is pure affine (but the coefficient of the               induction variable is not 1).
 
-7. There is a bash script called run_outer_loop_vectorization.sh that can lower and run the provided input file with and without the --outer-loop-vectorization pass on the provided input file and report how long each execution takes.
+7. There is a bash script called run_outer_loop_vectorization.sh that can lower and run the provided input file with and without the --outer-loop-vectorization pass and report how long each execution takes. Locally, it takes about 9 ~ 10 seconds with and ~ 1 minute 15 seconds without outer loop vectorization.
 
 
 

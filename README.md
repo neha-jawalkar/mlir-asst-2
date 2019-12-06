@@ -11,7 +11,7 @@
 4. Code for the actual vectorization is borrowed from the --affine-vectorize pass; however, an additional pass, --test-convert-vector-to-loops, is used to lower vector.transfer_read and vector.transfer_write operations. 
 This pass allocates a local buffer for the vector, reads each vector element into the local buffer, and performs operations on it.
 
-5. Running the lowered LLVM code sometimes results in a segfault. I'm not sure why, but I know that the vectorization is responsible for it, since the code also segfaults if we run the (preexisting) --affine-vectorize pass.
+5. Running the lowered LLVM code sometimes results in a segfault. This is because the vectorization is imperfect (though I'm not sure how). The same input file also segfaults if we run the (preexisting) --affine-vectorize pass.
 
 6. Test cases can be found in the file test_outer_loop_vectorization.mlir. They take care of the following:
     * Ensure that strides are properly calculated in the presence of an identity layout map.

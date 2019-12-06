@@ -6,7 +6,7 @@
 
 3. In a loop nest, the loop to vectorize is determined as follows: For each memRef in the body of the loop, we calculate the stride of the memRef with respect to the induction variable of the loop. The 'cost' of vectorizing a loop is the maximum such stride. The loop with the minimum maximum stride is chosen to be vectorized. However, the model is not complete and comes with certain stipulations:
     * We can only handle memRefs where a composition of the memRef accessMap with the memRef layoutMap is a one-dimensional         pure affine function.
-    * If a layoutMap is missing, we assume a canonical layout map (for eg. row-major in the case of two-dimensional                 memRefs), and work with the composition of the memRef access map with the canonical layout map.
+    * If a layoutMap is missing, we assume a canonical layout map (a memRef with n dimensions is stored such that the last dimension comes first, then the last but one dimension, and so on and so forth. This corresponds to a row-major layout in a memRef with two dimensions ), and work with the composition of the memRef access map with the canonical layout map.
 
 4. Code for the actual vectorization is borrowed from the --affine-vectorize pass; however, an additional pass, --test-convert-vector-to-loops, is used to lower vector.transfer_read and vector.transfer_write operations. 
 This pass allocates a local buffer for the vector, reads each vector element into the local buffer, and performs operations on it.

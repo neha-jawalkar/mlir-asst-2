@@ -644,6 +644,7 @@ static unsigned getStride(Value *iv, LoadOrStoreOp memoryOp) {
     // The coefficient of the induction variable in this expression decides its stride
     auto finalMap = layoutMap.compose(accessMap);
     auto layoutExpr = finalMap.getResult(0);
+    assert(layoutExpr.isPureAffine());
     SmallVector<Value *, 4> mapOperands(memoryOp.getMapOperands());
     SimpleAffineExprFlattener flattener(finalMap.getNumDims(), finalMap.getNumSymbols());
     flattener.walkPostOrder(layoutExpr);
@@ -1332,6 +1333,7 @@ void OuterLoopVec::runOnFunction() {
   std::sort(costs.begin(), costs.end(), compareCosts);
   for(auto c : costs)
   {
+    if(c->maxStride == UINT32_MAX) break;
     // printf("%u\n", c->maxStride);
     VectorizationStrategy s;
     s.vectorSizes.assign(vectorSizes.begin(), vectorSizes.end());

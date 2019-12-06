@@ -41,12 +41,13 @@ extern "C" void linalg_fill_viewsxsxf32_f32(StridedMemRefType<float, 2> *X,
       *(X->data + X->offset + i * X->strides[0] + j * X->strides[1]) = f;
 }
 
-extern "C" void linalg_fill_view4096x4096xf32_f32(StridedMemRefType<float, 2> *X,
+extern "C" void linalg_fill_view2048x2048xf32_f32(StridedMemRefType<float, 2> *X,
                                             float f) {
   for (unsigned i = 0; i < X->sizes[0]; ++i)
     for (unsigned j = 0; j < X->sizes[1]; ++j)
       *(X->data + X->offset + i * X->strides[0] + j * X->strides[1]) = f;
 }
+
 
 extern "C" void linalg_copy_viewf32_viewf32(StridedMemRefType<float, 0> *I,
                                             StridedMemRefType<float, 0> *O) {

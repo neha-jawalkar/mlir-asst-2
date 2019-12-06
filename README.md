@@ -2,12 +2,25 @@
 
 1. Running mlir-opt --outer-loop-vectorize will try to vectorize loops in each function. The pass is parameterized by --virtual-vec-size, which specifies what vector size to use for the vectorization.
 
-2. Loops are vectorized only if they are parallel, i.e., there are no dependencies along the loop induction variable in the iteration space.
+2. Loops are vectorized only if they are parallel, i.e., there are no dependences along the loop induction variable in the iteration space.
 
-3. Which loop to vectorize is determined by a cost function that minimizes the maximum stride across all memRefs in that loop.
+3. In a loop nest, the loop to vectorize is determined as follows: For each memRef in the body of the loop, we calculate the stride of the memRef with respect to the induction variable of the loop. The 'cost' of vectorizing a loop is the maximum such stride. The loop with the minimum maximum stride is chosen to be vectorized. However, the model is not complete and comes with certain stipulations:
+    * We can only handle memRefs where a composition of the memRef accessMap with the memRef layoutMap is a one-dimensional         pure affine function.
+    * If a layoutMap is missing, we assume a canonical layout map (a memRef with n dimensions is stored such that the last dimension comes first, then the last but one dimension, and so on and so forth. This corresponds to a row-major layout in a memRef with two dimensions ), and work with the composition of the memRef access map with the canonical layout map.
 
 4. Code for the actual vectorization is borrowed from the --affine-vectorize pass; however, an additional pass, --test-convert-vector-to-loops, is used to lower vector.transfer_read and vector.transfer_write operations. 
-This pass allocates a local buffer for the vector (for vector.transfer_read), reads each vector element into the local buffer, and performs operations on it.
+This pass allocates a local buffer for the vector, reads each vector element into the local buffer, and performs operations on it.
+
+5. Running the lowered LLVM code sometimes results in a segfault. This is because the vectorization is imperfect (though I'm not sure how). The same input file also segfaults if we run the (preexisting) --affine-vectorize pass.
+
+6. Test cases can be found in the file test_outer_loop_vectorization.mlir. They take care of the following:
+    * Ensure that strides are properly calculated in the presence of an identity layout map.
+    * Ensure that strides are properly calculated when the memRef layout map maps to a one-dimensional pure affine function.
+    * Ensure that the innermost loop is not vectorized, even when it is parallel.
+    * Ensure that vectorization doesn't occur when the trip count is smaller than the vector width.
+    * Ensure that strides are properly calculated when the access function is pure affine (but the coefficient of the               loop induction variable is not 1).
+
+7. There is a bash script called run_outer_loop_vectorization.sh that can lower and run the provided input file with and without the --outer-loop-vectorization pass and report how long each execution takes. Locally, it takes about 9 ~ 10 seconds with and ~ 1 minute 15 seconds without outer loop vectorization. The print statement has been commented out (though it can be uncommented to verify correctness), and the input file has been modified slightly to enable it to run. Also, the matrix C is initialized with 1.0 instead of 0.0 (to test correctness).
 
 
 
